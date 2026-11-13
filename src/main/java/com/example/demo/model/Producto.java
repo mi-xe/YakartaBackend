@@ -6,21 +6,30 @@ import java.math.BigDecimal;
 @Entity
 @Table(name = "productos")
 public class Producto {
+    
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    
     private Long id;
     @Column(nullable = false, length = 150)
+    
     private String nombre;
     @Column(nullable = false, precision = 12, scale = 2)
+    
     private BigDecimal precio;
     @Column(length = 255)
+    
     private String imagen;
     @Column(length = 60)
+    
     private String categoria;
     @Column(nullable = false)
+    
     private boolean enOferta = false;
     @Column(precision = 12, scale = 2)
+    
     private BigDecimal precioOferta;
     @Column(nullable = false)
+
     private Integer stock = 0;
 
     public Producto() {}

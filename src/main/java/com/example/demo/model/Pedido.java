@@ -8,17 +8,24 @@ import java.util.List;
 
 @Entity
 @Table(name = "pedidos")
+
 public class Pedido {
+    
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    
     private Long id;
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "usuario_id")
+    
     private Usuario usuario;
     @Column(nullable = false)
+    
     private LocalDate fecha = LocalDate.now();
     @Column(nullable = false, precision = 12, scale = 2)
+    
     private BigDecimal total = BigDecimal.ZERO;
     @Column(nullable = false, length = 30)
+    
     private String estado = "Pendiente";
     @OneToMany(mappedBy = "pedido", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PedidoDetalle> productos = new ArrayList<>();
