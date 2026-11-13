@@ -5,21 +5,16 @@ import jakarta.persistence.*;
 @Entity
 @Table(name = "usuarios", uniqueConstraints = @UniqueConstraint(columnNames = "email"))
 public class Usuario {
-   
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    
     private Long id;
     @Column(nullable = false, length = 120)
-    
     private String nombre;
     @Column(nullable = false, length = 180, unique = true)
-    
     private String email;
+    // Guarda aquí un hash seguro, nunca la contraseña en texto plano.
     @Column(nullable = false, length = 255)
-    
     private String password;
     @Column(nullable = false, length = 30)
-    
     private String rol = "Cliente";
 
     public Usuario() {}
