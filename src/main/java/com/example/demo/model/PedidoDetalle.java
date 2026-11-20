@@ -14,11 +14,11 @@ public class PedidoDetalle {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "producto_id")
     private Producto producto;
-    @Column(nullable = false, length = 150)
+    @Column(name = "nombre_producto", nullable = false, length = 150)
     private String nombreProducto;
     @Column(nullable = false)
     private Integer cantidad;
-    @Column(nullable = false, precision = 12, scale = 2)
+    @Column(name = "precio_unitario", nullable = false, precision = 12, scale = 2)
     private BigDecimal precioUnitario;
 
     public PedidoDetalle() {}

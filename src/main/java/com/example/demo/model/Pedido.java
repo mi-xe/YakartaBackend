@@ -11,8 +11,8 @@ import java.util.List;
 public class Pedido {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "usuario_id")
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "usuario_id", nullable = false)
     private Usuario usuario;
     @Column(nullable = false)
     private LocalDate fecha = LocalDate.now();
@@ -20,6 +20,14 @@ public class Pedido {
     private BigDecimal total = BigDecimal.ZERO;
     @Column(nullable = false, length = 30)
     private String estado = "Pendiente";
+    @Column(name = "direccion_nombre", length = 120)
+    private String direccionNombre;
+    @Column(name = "direccion_calle", length = 200)
+    private String direccionCalle;
+    @Column(name = "direccion_comuna", length = 120)
+    private String direccionComuna;
+    @Column(name = "direccion_telefono", length = 40)
+    private String direccionTelefono;
     @OneToMany(mappedBy = "pedido", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PedidoDetalle> productos = new ArrayList<>();
 
@@ -29,5 +37,9 @@ public class Pedido {
     public LocalDate getFecha(){return fecha;} public void setFecha(LocalDate fecha){this.fecha=fecha;}
     public BigDecimal getTotal(){return total;} public void setTotal(BigDecimal total){this.total=total;}
     public String getEstado(){return estado;} public void setEstado(String estado){this.estado=estado;}
+    public String getDireccionNombre(){return direccionNombre;} public void setDireccionNombre(String value){this.direccionNombre=value;}
+    public String getDireccionCalle(){return direccionCalle;} public void setDireccionCalle(String value){this.direccionCalle=value;}
+    public String getDireccionComuna(){return direccionComuna;} public void setDireccionComuna(String value){this.direccionComuna=value;}
+    public String getDireccionTelefono(){return direccionTelefono;} public void setDireccionTelefono(String value){this.direccionTelefono=value;}
     public List<PedidoDetalle> getProductos(){return productos;} public void setProductos(List<PedidoDetalle> productos){this.productos=productos;}
 }
