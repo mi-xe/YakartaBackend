@@ -32,7 +32,7 @@ public class UsuarioController {
                 || input.password() == null || input.password().length() < 6 || !validRole(input.rol()))
             return ResponseEntity.badRequest().body(Map.of("message", "Revisa los datos. La contraseña debe tener al menos 6 caracteres."));
         String email = input.email().trim().toLowerCase();
-        if (repo.findByEmail(email).isPresent()) return ResponseEntity.status(409).body(Map.of("message", "Ese correo ya está registrado."));
+        if (repo.findByEmailIgnoreCase(email).isPresent()) return ResponseEntity.status(409).body(Map.of("message", "Ese correo ya está registrado."));
         Usuario user = new Usuario(); user.setNombre(input.nombre().trim()); user.setEmail(email);
         user.setPassword(PasswordUtil.hash(input.password())); user.setRol(input.rol());
         return ResponseEntity.status(201).body(safe(repo.save(user)));
@@ -44,7 +44,7 @@ public class UsuarioController {
         if (input.nombre() == null || input.nombre().isBlank() || input.email() == null || !input.email().contains("@") || !validRole(input.rol()))
             return ResponseEntity.badRequest().body(Map.of("message", "Revisa nombre, correo y rol."));
         String email = input.email().trim().toLowerCase();
-        var duplicate = repo.findByEmail(email);
+        var duplicate = repo.findByEmailIgnoreCase(email);
         if (duplicate.isPresent() && !duplicate.get().getId().equals(id)) return ResponseEntity.status(409).body(Map.of("message", "Ese correo ya está registrado."));
         user.setNombre(input.nombre().trim()); user.setEmail(email); user.setRol(input.rol());
         if (input.password() != null && !input.password().isBlank()) {

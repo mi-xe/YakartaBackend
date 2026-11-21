@@ -39,7 +39,7 @@ public class CarritoController {
     public List<CartLine> get(HttpSession session) {
         return carrito.findByOwnerKey(ownerKey(session)).stream().map(item -> {
             Producto p = item.getProducto();
-            return new CartLine(p.getId(), p.getId(), p.getNombre(), price(p), p.getImagen(), p.getCategoria(), p.isEnOferta(), p.getPrecioOferta(), p.getStock(), item.getCantidad());
+            return new CartLine(item.getId(), p.getId(), p.getNombre(), price(p), p.getImagen(), p.getCategoria(), p.isEnOferta(), p.getPrecioOferta(), p.getStock(), item.getCantidad());
         }).toList();
     }
     @PostMapping @Transactional

@@ -45,7 +45,10 @@ public class PedidoController {
                         d.getNombreProducto(), d.getCantidad(), d.getPrecioUnitario())).toList();
         DireccionOut address = new DireccionOut(order.getDireccionNombre(), order.getDireccionCalle(),
                 order.getDireccionComuna(), order.getDireccionTelefono());
-        return new PedidoOut(order.getId(), order.getUsuario().getId(), order.getUsuario().getEmail(),
+        Usuario owner = order.getUsuario();
+        Long ownerId = owner == null ? null : owner.getId();
+        String ownerEmail = owner == null ? order.getUsuarioEmail() : owner.getEmail();
+        return new PedidoOut(order.getId(), ownerId, ownerEmail,
                 order.getFecha(), order.getTotal(), order.getEstado(), lines, address);
     }
 
@@ -64,7 +67,8 @@ public class PedidoController {
         if (user == null) return ResponseEntity.status(401).body(Map.of("message", "Inicia sesión para consultar el pedido."));
         Pedido order = pedidos.findById(id).orElse(null);
         if (order == null) return ResponseEntity.notFound().build();
-        if (!"Administrador".equalsIgnoreCase(user.getRol()) && !order.getUsuario().getId().equals(user.getId()))
+        if (!"Administrador".equalsIgnoreCase(user.getRol())
+                && (order.getUsuario() == null || !order.getUsuario().getId().equals(user.getId())))
             return ResponseEntity.status(403).body(Map.of("message", "No tienes permiso para ver este pedido."));
         return ResponseEntity.ok(out(order));
     }
@@ -93,7 +97,8 @@ public class PedidoController {
             return ResponseEntity.status(402).body(Map.of("message", "Saldo insuficiente. Tu saldo actual es $ " + user.getSaldo().toPlainString() + " CLP."));
 
         Pedido order = new Pedido();
-        order.setUsuario(user); order.setFecha(LocalDate.now()); order.setEstado("Entregado"); order.setTotal(total);
+        order.setUsuario(user); order.setUsuarioNombre(user.getNombre()); order.setUsuarioEmail(user.getEmail());
+        order.setFecha(LocalDate.now()); order.setEstado("Entregado"); order.setTotal(total);
         order.setDireccionNombre(address.getNombre()); order.setDireccionCalle(address.getCalle());
         order.setDireccionComuna(address.getComuna()); order.setDireccionTelefono(address.getTelefono());
         for (CarritoItem item : cart) {

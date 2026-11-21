@@ -8,17 +8,21 @@ import com.example.demo.service.PasswordUtil;
 import com.example.demo.service.SessionAuth;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
+import org.springframework.dao.DataAccessException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
-import java.util.LinkedHashMap;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
+    private static final Logger log = LoggerFactory.getLogger(AuthController.class);
     private final UsuarioRepository usuarios;
     private final CarritoItemRepository carrito;
     private final SessionAuth auth;
@@ -37,19 +41,54 @@ public class AuthController {
 
     @PostMapping("/registro")
     public ResponseEntity<?> register(@RequestBody Credentials input) {
-        if (input.nombre() == null || input.nombre().isBlank() || input.email() == null ||
-                !input.email().matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$") ||
+        if (input == null || input.nombre() == null || input.nombre().isBlank() || input.email() == null ||
+                !input.email().trim().matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$") ||
                 input.password() == null || input.password().length() < 6) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Completa los datos y usa una contraseña de al menos 6 caracteres."));
+            return ResponseEntity.badRequest().body(Map.of(
+                    "message", "Completa los datos y usa una contraseña de al menos 6 caracteres."));
         }
+
+        String nombre = input.nombre().trim();
         String email = input.email().trim().toLowerCase();
-        if (usuarios.findByEmail(email).isPresent())
-            return ResponseEntity.status(409).body(Map.of("message", "Ese correo ya está registrado."));
-        Usuario user = new Usuario();
-        user.setNombre(input.nombre().trim()); user.setEmail(email);
-        user.setPassword(PasswordUtil.hash(input.password())); user.setRol("Cliente"); user.setSaldo(BigDecimal.ZERO);
-        usuarios.save(user);
-        return ResponseEntity.status(201).body(Map.of("user", safe(user), "message", "Cuenta creada correctamente."));
+        if (nombre.length() > 120 || email.length() > 190) {
+            return ResponseEntity.badRequest().body(Map.of("message", "El nombre o correo supera el largo permitido."));
+        }
+
+        try {
+            if (usuarios.findByEmailIgnoreCase(email).isPresent()) {
+                return ResponseEntity.status(409).body(Map.of("message", "Ese correo ya está registrado."));
+            }
+
+            Usuario user = new Usuario();
+            user.setNombre(nombre);
+            user.setEmail(email);
+            user.setPassword(PasswordUtil.hash(input.password()));
+            user.setRol("Cliente");
+            user.setSaldo(BigDecimal.ZERO);
+
+            // saveAndFlush fuerza el INSERT ahora y evita responder éxito antes de que MySQL lo acepte.
+            Usuario saved = usuarios.saveAndFlush(user);
+            return ResponseEntity.status(201).body(Map.of(
+                    "user", safe(saved),
+                    "message", "Cuenta creada y guardada correctamente en MySQL."));
+        } catch (DataIntegrityViolationException ex) {
+            // Cubre el caso de dos registros simultáneos con el mismo correo sin ocultar
+            // otros errores de esquema (por ejemplo, una columna que no existe).
+            try {
+                if (usuarios.findByEmailIgnoreCase(email).isPresent()) {
+                    return ResponseEntity.status(409).body(Map.of("message", "Ese correo ya está registrado."));
+                }
+            } catch (DataAccessException lookupError) {
+                log.error("No se pudo comprobar si el correo {} ya existe", email, lookupError);
+            }
+            log.error("MySQL rechazó el INSERT de una cuenta para {}", email, ex);
+            return ResponseEntity.status(500).body(Map.of(
+                    "message", "MySQL rechazó el registro. Revisa que la tabla usuarios tenga las columnas nombre, email, password, rol y saldo."));
+        } catch (DataAccessException ex) {
+            log.error("No se pudo guardar la cuenta en MySQL para {}", email, ex);
+            return ResponseEntity.status(503).body(Map.of(
+                    "message", "No se pudo guardar la cuenta en MySQL. Comprueba la conexión y la base de datos configurada en el backend."));
+        }
     }
 
     @PostMapping("/login")
@@ -57,13 +96,18 @@ public class AuthController {
     public ResponseEntity<?> login(@RequestBody Credentials input, HttpServletRequest request, HttpSession session) {
         if (input.email() == null || input.password() == null)
             return ResponseEntity.badRequest().body(Map.of("message", "Ingresa tu correo y contraseña."));
-        var found = usuarios.findByEmail(input.email().trim().toLowerCase());
+        var found = usuarios.findByEmailIgnoreCase(input.email().trim());
         if (found.isEmpty() || !PasswordUtil.verify(input.password(), found.get().getPassword()))
             return ResponseEntity.status(401).body(Map.of("message", "Correo o contraseña incorrectos."));
 
         String oldOwner = "SESSION:" + session.getId();
         request.changeSessionId();
         Usuario user = found.get();
+        // Migrate legacy plain-text and PHP bcrypt hashes after a successful login.
+        if (PasswordUtil.needsUpgrade(user.getPassword())) {
+            user.setPassword(PasswordUtil.hash(input.password()));
+            user = usuarios.save(user);
+        }
         session.setAttribute(SessionAuth.USER_ID, user.getId());
         String userOwner = "USER:" + user.getId();
         for (CarritoItem item : carrito.findByOwnerKey(oldOwner)) {

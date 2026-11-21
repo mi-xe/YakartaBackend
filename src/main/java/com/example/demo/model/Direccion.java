@@ -7,8 +7,8 @@ import jakarta.persistence.*;
 public class Direccion {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @OneToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "usuario_id", nullable = false, unique = true)
+    @OneToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "usuario_id", nullable = true, unique = true)
     private Usuario usuario;
     @Column(nullable = false, length = 120) private String nombre;
     @Column(nullable = false, length = 200) private String calle;

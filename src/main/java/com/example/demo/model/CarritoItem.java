@@ -7,7 +7,7 @@ import jakarta.persistence.*;
 public class CarritoItem {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY) private Long id;
     @Column(name = "owner_key", nullable = false, length = 100) private String ownerKey;
-    @ManyToOne(fetch = FetchType.LAZY, optional = false) @JoinColumn(name = "producto_id", nullable = false) private Producto producto;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false) @JoinColumn(name = "producto_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT)) private Producto producto;
     @Column(nullable = false) private Integer cantidad = 1;
     public CarritoItem() {}
     public Long getId(){return id;} public void setId(Long id){this.id=id;}

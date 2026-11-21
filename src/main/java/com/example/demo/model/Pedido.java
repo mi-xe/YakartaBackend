@@ -11,8 +11,8 @@ import java.util.List;
 public class Pedido {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "usuario_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "usuario_id", nullable = true)
     private Usuario usuario;
     @Column(nullable = false)
     private LocalDate fecha = LocalDate.now();
@@ -28,6 +28,11 @@ public class Pedido {
     private String direccionComuna;
     @Column(name = "direccion_telefono", length = 40)
     private String direccionTelefono;
+    // Compatibility with the previous PHP schema, where these columns were NOT NULL.
+    @Column(name = "usuario_nombre", length = 120)
+    private String usuarioNombre;
+    @Column(name = "usuario_email", length = 190)
+    private String usuarioEmail;
     @OneToMany(mappedBy = "pedido", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PedidoDetalle> productos = new ArrayList<>();
 
@@ -41,5 +46,7 @@ public class Pedido {
     public String getDireccionCalle(){return direccionCalle;} public void setDireccionCalle(String value){this.direccionCalle=value;}
     public String getDireccionComuna(){return direccionComuna;} public void setDireccionComuna(String value){this.direccionComuna=value;}
     public String getDireccionTelefono(){return direccionTelefono;} public void setDireccionTelefono(String value){this.direccionTelefono=value;}
+    public String getUsuarioNombre(){return usuarioNombre;} public void setUsuarioNombre(String value){this.usuarioNombre=value;}
+    public String getUsuarioEmail(){return usuarioEmail;} public void setUsuarioEmail(String value){this.usuarioEmail=value;}
     public List<PedidoDetalle> getProductos(){return productos;} public void setProductos(List<PedidoDetalle> productos){this.productos=productos;}
 }
