@@ -29,7 +29,14 @@ public class CarritoController {
 
     private String ownerKey(HttpSession session) {
         Usuario user = auth.currentUser(session);
-        return user == null ? "SESSION:" + session.getId() : "USER:" + user.getId();
+        if (user != null) return "USER:" + user.getId();
+        // Preserve the anonymous cart owner across the session-ID rotation used by OAuth.
+        String owner = (String) session.getAttribute(SessionAuth.ANONYMOUS_CART_OWNER);
+        if (owner == null) {
+            owner = "SESSION:" + session.getId();
+            session.setAttribute(SessionAuth.ANONYMOUS_CART_OWNER, owner);
+        }
+        return owner;
     }
     private BigDecimal price(Producto p) {
         return p.isEnOferta() && p.getPrecioOferta() != null && p.getPrecioOferta().compareTo(BigDecimal.ZERO) > 0 && p.getPrecioOferta().compareTo(p.getPrecio()) < 0
@@ -39,7 +46,7 @@ public class CarritoController {
     public List<CartLine> get(HttpSession session) {
         return carrito.findByOwnerKey(ownerKey(session)).stream().map(item -> {
             Producto p = item.getProducto();
-            return new CartLine(item.getId(), p.getId(), p.getNombre(), price(p), p.getImagen(), p.getCategoria(), p.isEnOferta(), p.getPrecioOferta(), p.getStock(), item.getCantidad());
+            return new CartLine(item.getId(), p.getId(), p.getNombre(), price(p), p.getImagen(), p.getCategoria(), p.isEnOferta(), p.getPrecioOferta(), p.getStock() == null ? 0 : p.getStock(), item.getCantidad());
         }).toList();
     }
     @PostMapping @Transactional
@@ -47,14 +54,17 @@ public class CarritoController {
         if (input.productoId() == null) return ResponseEntity.badRequest().body(Map.of("message", "Selecciona un producto válido."));
         Producto p = productos.findById(input.productoId()).orElse(null);
         if (p == null) return ResponseEntity.notFound().build();
-        int add = input.cantidad() == null || input.cantidad() < 1 ? 1 : input.cantidad();
+        int add = input.cantidad() == null ? 1 : input.cantidad();
+        if (add < 1) return ResponseEntity.badRequest().body(Map.of("message", "La cantidad debe ser mayor que cero."));
+        int available = p.getStock() == null ? 0 : p.getStock();
+        if (available < 1) return ResponseEntity.status(409).body(Map.of("message", "" + p.getNombre() + " está fuera de stock."));
         String owner = ownerKey(session);
         CarritoItem item = carrito.findByOwnerKeyAndProductoId(owner, p.getId()).orElseGet(() -> {
             CarritoItem fresh = new CarritoItem(); fresh.setOwnerKey(owner); fresh.setProducto(p); fresh.setCantidad(0); return fresh;
         });
         int next = item.getCantidad() + add;
-        if (p.getStock() != null && next > p.getStock())
-            return ResponseEntity.status(409).body(Map.of("message", "No hay stock suficiente para " + p.getNombre() + ". Stock disponible: " + p.getStock()));
+        if (next > available)
+            return ResponseEntity.status(409).body(Map.of("message", "No hay stock suficiente para " + p.getNombre() + ". Stock disponible: " + available));
         item.setCantidad(next); carrito.save(item);
         return ResponseEntity.ok(Map.of("message", "Producto agregado al carrito."));
     }
@@ -64,7 +74,8 @@ public class CarritoController {
         if (item == null) return ResponseEntity.notFound().build();
         int quantity = input.cantidad() == null ? 1 : input.cantidad();
         if (quantity < 1) return ResponseEntity.badRequest().body(Map.of("message", "La cantidad debe ser mayor que cero."));
-        if (quantity > item.getProducto().getStock()) return ResponseEntity.status(409).body(Map.of("message", "No hay stock suficiente."));
+        int available = item.getProducto().getStock() == null ? 0 : item.getProducto().getStock();
+        if (quantity > available) return ResponseEntity.status(409).body(Map.of("message", "No hay stock suficiente. Stock disponible: " + available));
         item.setCantidad(quantity); carrito.save(item);
         return ResponseEntity.ok(Map.of("message", "Carrito actualizado."));
     }

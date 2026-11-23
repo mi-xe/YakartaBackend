@@ -25,6 +25,8 @@ public class PedidoDetalle {
     private BigDecimal precioUnitario;
     @Column(name = "precio", precision = 12, scale = 2)
     private BigDecimal precioLegacy;
+    @Column(name = "imagen_producto", columnDefinition = "TEXT")
+    private String imagenProducto;
 
     public PedidoDetalle() {}
     public Long getId(){return id;} public void setId(Long id){this.id=id;}
@@ -35,4 +37,5 @@ public class PedidoDetalle {
     public Integer getCantidad(){return cantidad;} public void setCantidad(Integer cantidad){this.cantidad=cantidad;}
     public BigDecimal getPrecioUnitario(){return precioUnitario != null ? precioUnitario : precioLegacy;}
     public void setPrecioUnitario(BigDecimal precioUnitario){this.precioUnitario=precioUnitario; this.precioLegacy=precioUnitario;}
+    public String getImagenProducto(){return imagenProducto;} public void setImagenProducto(String imagenProducto){this.imagenProducto=imagenProducto;}
 }

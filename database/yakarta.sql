@@ -13,11 +13,13 @@ CREATE TABLE IF NOT EXISTS usuarios (
     nombre VARCHAR(120) NOT NULL,
     email VARCHAR(190) NOT NULL,
     password VARCHAR(255) NOT NULL,
+    google_sub VARCHAR(255) NULL,
     rol VARCHAR(30) NOT NULL DEFAULT 'Cliente',
     saldo DECIMAL(12,2) NOT NULL DEFAULT 0.00,
     creado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
-    UNIQUE KEY uq_usuarios_email (email)
+    UNIQUE KEY uq_usuarios_email (email),
+    UNIQUE KEY uk_usuarios_google_sub (google_sub)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Confirmación rápida de la base seleccionada.

@@ -8,6 +8,10 @@ import org.springframework.stereotype.Component;
 @Component
 public class SessionAuth {
     public static final String USER_ID = "yakartaUserId";
+    public static final String ANONYMOUS_CART_OWNER = "yakartaAnonymousCartOwner";
+    public static final String AUTH_PROVIDER = "yakartaAuthProvider";
+    public static final String PROVIDER_GOOGLE = "GOOGLE";
+    public static final String PROVIDER_YAKARTA = "YAKARTA";
     private final UsuarioRepository usuarios;
 
     public SessionAuth(UsuarioRepository usuarios) { this.usuarios = usuarios; }
@@ -17,6 +21,10 @@ public class SessionAuth {
         Object id = session.getAttribute(USER_ID);
         if (!(id instanceof Long userId)) return null;
         return usuarios.findById(userId).orElse(null);
+    }
+
+    public boolean isGoogleAuthenticated(HttpSession session) {
+        return session != null && PROVIDER_GOOGLE.equals(session.getAttribute(AUTH_PROVIDER));
     }
 
     public boolean isAdmin(HttpSession session) {

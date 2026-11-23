@@ -31,3 +31,12 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# Product image files are stored by the independent backend
+/uploads/
+
+# OAuth credentials and local configuration
+.env
+.env.*
+!.env.example
+application-local.properties

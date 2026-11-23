@@ -20,5 +20,17 @@ public class CorsConfig implements WebMvcConfigurer {
                 .allowedHeaders("*")
                 .allowCredentials(true)
                 .maxAge(3600);
+
+        // Permite que el frontend dibuje las portadas subidas al backend en el PDF de la boleta.
+        // Los navegadores exigen CORS para poder exportar a canvas imágenes de otro origen.
+        registry.addMapping("/uploads/**")
+                .allowedOriginPatterns(
+                        "http://localhost:*",
+                        "http://127.0.0.1:*",
+                        "http://[::1]:*"
+                )
+                .allowedMethods("GET", "OPTIONS")
+                .allowedHeaders("*")
+                .maxAge(3600);
     }
 }

@@ -33,10 +33,10 @@ public class AuthController {
 
     public record Credentials(String nombre, String email, String password) {}
     public record FundsRequest(BigDecimal amount) {}
-    public record PublicUser(Long id, String nombre, String email, String rol, BigDecimal saldo) {}
+    public record PublicUser(Long id, String nombre, String email, String rol, BigDecimal saldo, String authProvider) {}
 
-    private PublicUser safe(Usuario user) {
-        return new PublicUser(user.getId(), user.getNombre(), user.getEmail(), user.getRol(), user.getSaldo());
+    private PublicUser safe(Usuario user, String authProvider) {
+        return new PublicUser(user.getId(), user.getNombre(), user.getEmail(), user.getRol(), user.getSaldo(), authProvider);
     }
 
     @PostMapping("/registro")
@@ -69,7 +69,7 @@ public class AuthController {
             // saveAndFlush fuerza el INSERT ahora y evita responder éxito antes de que MySQL lo acepte.
             Usuario saved = usuarios.saveAndFlush(user);
             return ResponseEntity.status(201).body(Map.of(
-                    "user", safe(saved),
+                    "user", safe(saved, SessionAuth.PROVIDER_YAKARTA),
                     "message", "Cuenta creada y guardada correctamente en MySQL."));
         } catch (DataIntegrityViolationException ex) {
             // Cubre el caso de dos registros simultáneos con el mismo correo sin ocultar
@@ -100,7 +100,8 @@ public class AuthController {
         if (found.isEmpty() || !PasswordUtil.verify(input.password(), found.get().getPassword()))
             return ResponseEntity.status(401).body(Map.of("message", "Correo o contraseña incorrectos."));
 
-        String oldOwner = "SESSION:" + session.getId();
+        String oldOwner = (String) session.getAttribute(SessionAuth.ANONYMOUS_CART_OWNER);
+        if (oldOwner == null) oldOwner = "SESSION:" + session.getId();
         request.changeSessionId();
         Usuario user = found.get();
         // Migrate legacy plain-text and PHP bcrypt hashes after a successful login.
@@ -109,6 +110,8 @@ public class AuthController {
             user = usuarios.save(user);
         }
         session.setAttribute(SessionAuth.USER_ID, user.getId());
+        session.setAttribute(SessionAuth.AUTH_PROVIDER, SessionAuth.PROVIDER_YAKARTA);
+        session.removeAttribute(SessionAuth.ANONYMOUS_CART_OWNER);
         String userOwner = "USER:" + user.getId();
         for (CarritoItem item : carrito.findByOwnerKey(oldOwner)) {
             var existing = carrito.findByOwnerKeyAndProductoId(userOwner, item.getProducto().getId());
@@ -122,14 +125,18 @@ public class AuthController {
                 carrito.save(item);
             }
         }
-        return ResponseEntity.ok(Map.of("user", safe(user)));
+        Object provider = session.getAttribute(SessionAuth.AUTH_PROVIDER);
+        String authProvider = provider instanceof String value ? value : SessionAuth.PROVIDER_YAKARTA;
+        return ResponseEntity.ok(Map.of("user", safe(user, authProvider)));
     }
 
     @GetMapping("/me")
     public ResponseEntity<?> me(HttpSession session) {
         Usuario user = auth.currentUser(session);
         if (user == null) return ResponseEntity.status(401).body(Map.of("message", "No hay una sesión iniciada."));
-        return ResponseEntity.ok(Map.of("user", safe(user)));
+        Object provider = session.getAttribute(SessionAuth.AUTH_PROVIDER);
+        String authProvider = provider instanceof String value ? value : SessionAuth.PROVIDER_YAKARTA;
+        return ResponseEntity.ok(Map.of("user", safe(user, authProvider)));
     }
 
     @PostMapping("/logout")
@@ -149,6 +156,8 @@ public class AuthController {
             return ResponseEntity.badRequest().body(Map.of("message", "El monto solicitado no es válido."));
         user.setSaldo(user.getSaldo().add(input.amount()));
         usuarios.save(user);
-        return ResponseEntity.ok(Map.of("user", safe(user), "message", "Saldo actualizado."));
+        Object provider = session.getAttribute(SessionAuth.AUTH_PROVIDER);
+        String authProvider = provider instanceof String value ? value : SessionAuth.PROVIDER_YAKARTA;
+        return ResponseEntity.ok(Map.of("user", safe(user, authProvider), "message", "Saldo actualizado."));
     }
 }
