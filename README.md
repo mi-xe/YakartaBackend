@@ -234,3 +234,18 @@ El endpoint devuelve `acceptedBySmtp: true` y un `messageId` únicamente despué
 ### Corrección de compilación del remitente de correo
 
 `ReceiptEmailService` ahora captura `UnsupportedEncodingException` al establecer el nombre visible del remitente y la envuelve como `MessagingException`. Esto resuelve el error de compilación de Java en `helper.setFrom(from, "Yakarta Gaming")` sin cambiar la configuración SMTP ni el comportamiento de envío.
+
+
+## Actualización de plataformas y stock del catálogo
+
+Para una base de datos ya existente, ejecutar una vez desde phpMyAdmin:
+
+`database/migrate_product_platforms_and_stock.sql`
+
+El script:
+- Actualiza las etiquetas `plataformas` de los 28 juegos predeterminados.
+- Añade compatibilidad de datos para `PlayStation 2` y `PSP`.
+- Asigna stock inicial entre 0 y 15, con GTA VI como único juego con stock 0.
+- Registra la migración en `yakarta_migrations` para no restablecer el stock en ejecuciones posteriores.
+
+En una instalación nueva, `DataInitializer.java` crea los 28 productos con las mismas plataformas y existencias.

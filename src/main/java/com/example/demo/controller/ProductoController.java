@@ -19,7 +19,7 @@ import java.util.ArrayList;
 @RequestMapping("/api/productos")
 public class ProductoController {
     private static final Set<String> PLATAFORMAS_PERMITIDAS = Set.of(
-            "PC", "PlayStation 3", "PlayStation 4", "PlayStation 5",
+            "PC", "PlayStation 2", "PlayStation 3", "PlayStation 4", "PlayStation 5", "PSP",
             "Xbox Series S/X", "Nintendo Switch", "Nintendo Switch 2"
     );
 
